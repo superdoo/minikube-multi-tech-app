@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Minikube Multi-Tech App Summary</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
+    code, pre { background: #f4f4f4; padding: 4px 6px; display: block; overflow-x: auto; }
+    h2 { color: #2c3e50; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>🚀 Minikube Multi-Tech Application Project Summary</h1>
+
+  <p>This project sets up a simple multi-component application using the following stack:</p>
+  <ul>
+    <li><strong>Minikube</strong> - local Kubernetes cluster</li>
+    <li><strong>FastAPI</strong> - lightweight Python backend</li>
+    <li><strong>Redis</strong> - in-memory data store</li>
+    <li><strong>Docker</strong> - containerization</li>
+    <li><strong>Kubernetes</strong> - app orchestration</li>
+  </ul>
+
+  <h2>📁 Project Structure</h2>
+
+  <pre><code>~/minikube-multi-app/
+├── backend/
+│   ├── app/
+│   │   └── main.py
+│   └── Dockerfile
+├── k8s/
+│   ├── backend.yaml
+│   └── redis.yaml
+</code></pre>
+
+  <h2>🐍 FastAPI Backend (app/main.py)</h2>
+
+  <pre><code>from fastapi import FastAPI
+import redis
+import os
+
+app = FastAPI()
+
+r = redis.Redis(host=os.getenv("REDIS_HOST", "localhost"), port=int(os.getenv("REDIS_PORT", 6379)))
+
+@app.get("/")
+def read_root():
+    val = r.get("mykey")
+    if val:
+        return {"message": f"Value from Redis: {val.decode('utf-8')}"}
+    return {"message": "No value set in Redis"}
+
+@app.get("/set")
+def set_value():
+    r.set("mykey", "Hello from FastAPI via Redis!")
+    return {"message": "Value set in Redis"}
+</code></pre>
+
+  <h2>🐳 Dockerfile (backend/Dockerfile)</h2>
+
+  <pre><code>FROM python:3.12-slim
+WORKDIR /app
+COPY ./app /app
+RUN pip install fastapi[all] redis
+CMD ["uvicorn", "main:app", "--host", "0
