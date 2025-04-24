@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/your-username/minikube-multi-tech-app.git'
+                git 'https://github.com/superdoo/minikube-multi-tech-app.git'
             }
         }
 
