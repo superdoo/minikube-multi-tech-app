@@ -1,12 +1,13 @@
 pipeline {
     agent any
+
     environment {
-        DOCKER_IMAGE = 'backend:latest'
-        REGISTRY = 'your-dockerhub-username' // Replace with your Docker Hub username
-        K8S_CLUSTER = 'minikube' // Assuming you're using Minikube, adjust if using another Kubernetes cluster
-        BACKEND_IMAGE = 'backend:latest'
+        DOCKER_IMAGE_BACKEND = 'backend:latest'
+        DOCKER_IMAGE_FRONTEND = 'frontend:latest'
+        K8S_CLUSTER = 'minikube'
         K8S_NAMESPACE = 'default'
     }
+
     stages {
         stage('Checkout') {
             steps {
@@ -15,38 +16,75 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Docker Images') {
             steps {
                 script {
-                    // Build Docker image for the backend
-                    docker.build("${REGISTRY}/${DOCKER_IMAGE}")
-                }
-            }
-        }
-
-        stage('Push Docker Image to Registry') {
-            steps {
-                script {
-                    // Log in to Docker Hub and push the image
-                    withDockerRegistry([credentialsId: 'dockerhub-credentials', url: 'https://index.docker.io/v1/']) {
-                        docker.image("${REGISTRY}/${DOCKER_IMAGE}").push()
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
+                                                      usernameVariable: 'DOCKER_USER',
+                                                      passwordVariable: 'DOCKER_PASS')]) {
+                        def backendImage = "${DOCKER_USER}/${DOCKER_IMAGE_BACKEND}"
+                        def frontendImage = "${DOCKER_USER}/${DOCKER_IMAGE_FRONTEND}"
+                        echo "Building backend: ${backendImage}"
+                        docker.build(backendImage, 'backend')
+                        echo "Building frontend: ${frontendImage}"
+                        docker.build(frontendImage, 'frontend')
                     }
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Push Docker Images') {
             steps {
                 script {
-                    // Deploy the app to Kubernetes using kubectl
-                    sh '''
-                    kubectl set image deployment/backend backend=${REGISTRY}/${DOCKER_IMAGE} --namespace=${K8S_NAMESPACE}
-                    kubectl rollout status deployment/backend --namespace=${K8S_NAMESPACE}
-                    '''
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
+                                                      usernameVariable: 'DOCKER_USER',
+                                                      passwordVariable: 'DOCKER_PASS')]) {
+                        def backendImage = "${DOCKER_USER}/${DOCKER_IMAGE_BACKEND}"
+                        def frontendImage = "${DOCKER_USER}/${DOCKER_IMAGE_FRONTEND}"
+                        sh """
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push ${backendImage}
+                        docker push ${frontendImage}
+                        docker logout
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy Backend to Kubernetes') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
+                                                      usernameVariable: 'DOCKER_USER',
+                                                      passwordVariable: 'DOCKER_PASS')]) {
+                        def backendImage = "${DOCKER_USER}/${DOCKER_IMAGE_BACKEND}"
+                        sh """
+                        kubectl set image deployment/backend backend=${backendImage} --namespace=${K8S_NAMESPACE}
+                        kubectl rollout status deployment/backend --namespace=${K8S_NAMESPACE}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy Frontend to Kubernetes') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
+                                                      usernameVariable: 'DOCKER_USER',
+                                                      passwordVariable: 'DOCKER_PASS')]) {
+                        def frontendImage = "${DOCKER_USER}/${DOCKER_IMAGE_FRONTEND}"
+                        sh """
+                        kubectl set image deployment/frontend frontend=${frontendImage} --namespace=${K8S_NAMESPACE}
+                        kubectl rollout status deployment/frontend --namespace=${K8S_NAMESPACE}
+                        """
+                    }
                 }
             }
         }
     }
+
     post {
         success {
             echo "Deployment successful!"
