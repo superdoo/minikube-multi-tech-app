@@ -6,7 +6,7 @@ pipeline {
         DOCKER_IMAGE_FRONTEND = 'frontend:latest'
         K8S_CLUSTER = 'minikube'
         K8S_NAMESPACE = 'default'
-        K8S_SERVER = 'https://192.168.49.2:8443'  // replace with your Minikube API server
+        K8S_SERVER = 'https://192.168.58.2:8443'  // replace with your Minikube API server
     }
 
     stages {
