@@ -19,9 +19,7 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
-                                                      usernameVariable: 'DOCKER_USER',
-                                                      passwordVariable: 'DOCKER_PASS')]) {
+                   withCredentials([usernamePassword(credentialsId: 'DOCKER_USER', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')])  {
                         def backendImage = "${DOCKER_USER}/${DOCKER_IMAGE_BACKEND}"
                         def frontendImage = "${DOCKER_USER}/${DOCKER_IMAGE_FRONTEND}"
                         echo "Building backend: ${backendImage}"
