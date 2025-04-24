@@ -10,7 +10,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'main', url:'https://github.com/superdoo/minikube-multi-tech-app.git'
+                echo "Checking out the repository"
+                git branch: 'main', url:'https://github.com/superdoo/minikube-multi-tech-app.git'
             }
         }
 
