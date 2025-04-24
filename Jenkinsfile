@@ -68,4 +68,45 @@ pipeline {
             }
         }
 
-        stage('Deploy Backend to Kubernetes')
+        stage('Deploy Backend to Kubernetes') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
+                                                      usernameVariable: 'DOCKER_USER',
+                                                      passwordVariable: 'DOCKER_PASS')]) {
+                        def backendImage = "${DOCKER_USER}/${DOCKER_IMAGE_BACKEND}"
+                        sh """
+                        kubectl set image deployment/backend backend=${backendImage} --namespace=${K8S_NAMESPACE}
+                        kubectl rollout status deployment/backend --namespace=${K8S_NAMESPACE}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy Frontend to Kubernetes') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
+                                                      usernameVariable: 'DOCKER_USER',
+                                                      passwordVariable: 'DOCKER_PASS')]) {
+                        def frontendImage = "${DOCKER_USER}/${DOCKER_IMAGE_FRONTEND}"
+                        sh """
+                        kubectl set image deployment/frontend frontend=${frontendImage} --namespace=${K8S_NAMESPACE}
+                        kubectl rollout status deployment/frontend --namespace=${K8S_NAMESPACE}
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment successful!"
+        }
+        failure {
+            echo "Something went wrong with the pipeline."
+        }
+    }
+}
